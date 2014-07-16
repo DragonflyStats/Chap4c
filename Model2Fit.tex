@@ -1,0 +1,22 @@
+\begin{verbatim}
+Linear mixed-effects model fit by REML
+  Data: dat
+  Log-restricted-likelihood: -2047.714
+  Fixed: BP ~ method
+(Intercept)     methodS
+  127.40784    15.61961
+
+Random effects:
+ Formula: ~1 | subject
+        (Intercept)
+StdDev:    28.28452
+
+ Formula: ~1 | method %in% subject
+        (Intercept) Residual
+StdDev:    12.61562 7.763666
+
+Number of Observations: 510
+Number of Groups:
+            subject method %in% subject
+                 85                 170
+\end{verbatim}
