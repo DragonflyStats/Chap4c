@@ -1,0 +1,157 @@
+\section{Decomposition to classify with DictionaryLearning}
+In this recipe, we'll show how a decomposition method can actually be used for
+classification. DictionaryLearning attempts to take a dataset and transform
+it into a sparse representation.
+\subsubsection{Getting ready}
+With DictionaryLearning, the idea is that the features are a basis for the resulting
+datasets. In an effort to keep this recipe short, I'll assume you have \texttt{idis\_data} and
+\texttt{iris\_target} ready to go.
+How to do it...
+First, import DictionaryLearning:
+\begin{framed}
+\begin{verbatim}
+>>> from sklearn.decomposition import DictionaryLearning
+\end{verbatim}
+\end{framed}
+Next, use three components to represent the three species of iris:
+>>> dl = DictionaryLearning(3)
+%===========================================================================================%
+%Premodel Workflow
+%40
+Then transform every other data point so that we can test the classifier on the resulting data
+points after the learner is trained:
+\begin{framed}
+\begin{verbatim}
+>>> transformed = dl.fit_transform(iris_data[::2])
+>>> transformed[:5]
+array([[ 0. , 6.34476574, 0. ],
+[ 0. , 5.83576461, 0. ],
+[ 0. , 6.32038375, 0. ],
+[ 0. , 5.89318572, 0. ],
+[ 0. , 5.45222715, 0. ]])
+\end{verbatim}
+\end{framed}
+We can visualize the output. Notice how each value is sited on the x, y, or z axis along with the
+other values and 0; this is called sparseness.
+
+If you look closely, you can see there was some training error. One of the classes was
+misclassified. Only being wrong once isn't a big deal, though.
+Next, let's fit (not \texttt{fit\_transform}) the testing set:
+\begin{framed}
+	\begin{verbatim}
+>>> transformed = dl.transform(iris_data[1::2])
+\end{verbatim}
+\end{framed}
+%===========================================================================================%
+%-- Chapter 1
+% 41
+The following screenshot shows its performance:
+Notice again that there was some error in the classification. If you remember some of the
+other visualizations, the blue and green classes were the two classes that often appeared
+close together.
+\subsubsection{How it works...}
+DictionaryLearning has a background in signal processing and neurology. The idea is
+that only few features can be active at any given time. Therefore, DictionaryLearning
+attempts to find a suitable representation for the underlying data, given the constraint that
+most of the features should be 0.
+\newpage
+Putting it all together with Pipelines
+Now that we've used Pipelines and data transformation techniques, we'll walk through a more
+complicated example that combines several of the previous recipes into a pipeline.
+\subsubsection{Getting ready}
+In this section, we'll show o\item some more of Pipeline's power. When we used it earlier to
+impute missing values, it was only a quick taste; we'll chain together multiple preprocessing
+steps to show how Pipelines can remove extra work.
+%===========================================================================================%
+Premodel Workflow
+42
+Let's briefly load the iris dataset and seed it with some missing values:
+>>> from sklearn.datasets import load_iris
+>>> import numpy as np
+>>> iris = load_iris()
+>>> iris_data = iris.data
+>>> mask = np.random.binomial(1, .25, iris_data.shape).astype(bool)
+>>> iris_data[mask] = np.nan
+>>> iris_data[:5]
+array([[ 5.1, 3.5, 1.4, nan],
+[ nan, 3. , 1.4, 0.2],
+[ 4.7, 3.2, 1.3, 0.2],
+[ 4.6, 3.1, 1.5, 0.2],
+[ 5. , 3.6, nan, 0.2]])
+\end{verbatim}
+\end{framed}
+How to do it...
+The goal of this chapter is to first impute the missing values of iris_data, and then perform
+PCA on the corrected dataset. You can imagine (and we'll do it later) that this workflow might
+need to be split between a training dataset and a holdout set; Pipelines will make this easier,
+but first we need to take a baby step.
+Let's load the required libraries:
+>>> from sklearn import pipeline, preprocessing, decomposition
+Next, create the imputer and PCA classes:
+>>> pca = decomposition.PCA()
+>>> imputer = preprocessing.Imputer()
+Now that we have the classes we need, we can load them into Pipeline:
+>>> pipe = pipeline.Pipeline([('imputer', imputer), ('pca', pca)])
+>>> iris_data_transformed = pipe.fit_transform(iris_data)
+>>> iris_data_transformed[:5]
+array([[ -2.42e+00, -3.59e-01, -6.88e-01, -3.49e-01],
+[ -2.44e+00, -6.94e-01, 3.27e-01, 4.87e-01],
+[ -2.94e+00, 2.45e-01, -1.85e-03, 4.37e-02],
+[ -2.79e+00, 4.29e-01, -8.05e-03, 9.65e-02],
+[ -6.46e-01, 8.87e-01, 7.54e-01, -5.19e-01]])
+\end{verbatim}
+\end{framed}
+This takes a lot more management if we use separate steps. Instead of each step requiring a
+fit transform, this step is performed only once. Not to mention that we only have to keep track
+of one object!
+%===========================================================================================%
+%-- Chapter 1
+43
+How it works...
+Hopefully it was obvious, but each step in Pipeline is passed to a Pipeline object via a list of
+tuples, with the first element getting the name and the second getting the actual object.
+Under the hood, these steps are looped through when a method such as fit_transform
+is called on the Pipeline object.
+This said, there are quick and dirty ways to create Pipeline, much in the same way there was
+a quick way to perform scaling, though we can use StandardScaler if we want more power.
+The pipeline function will automatically create the names for the Pipeline objects:
+>>> pipe2 = pipeline.make_pipeline(imputer, pca)
+>>> pipe2.steps
+[('imputer', Imputer(axis=0, copy=True, missing_values='NaN',
+strategy='mean', verbose=0)),
+('pca', PCA(copy=True, n_components=None, whiten=False))]
+This is the same object that was created in the more verbose method:
+>>> iris_data_transformed2 = pipe2.fit_transform(iris_data)
+>>> iris_data_transformed2[:5]
+array([[ -2.42e+00, -3.59e-01, -6.88e-01, -3.49e-01],
+[ -2.44e+00, -6.94e-01, 3.27e-01, 4.87e-01],
+[ -2.94e+00, 2.45e-01, -1.85e-03, 4.37e-02],
+[ -2.79e+00, 4.29e-01, -8.05e-03, 9.65e-02],
+[ -6.46e-01, 8.87e-01, 7.54e-01, -5.19e-01]])
+\end{verbatim}
+\end{framed}
+There's more...
+We just walked through Pipelines at a very high level, but it's unlikely that we will want to
+apply the base transformation. Therefore, the attributes of each object in Pipeline can be
+accessed from a set_params method, where the parameter follows the <parameter's_
+name>__<parameter's_parameter> convention. For example, let's change the pca
+object to use two components:
+>>> pipe2.set_params(pca_n_components=2)
+Pipeline(steps=[('imputer', Imputer(axis=0, copy=True,
+missing_values='NaN', strategy='mean', verbose=0)),
+('pca', PCA(copy=True, n_components=2, whiten=False))])
+The __ notation is pronounced as dunder in the Python community.
+%===========================================================================================%
+%Premodel Workflow
+%44
+Notice n_components=2 in the preceding output. Just as a test, we can output the same
+transformation we already did twice, and the output will be an N x 2 matrix:
+>>> iris_data_transformed3 = pipe2.fit_transform(iris_data)
+>>> iris_data_transformed3[:5]
+array([[-2.42, -0.36],
+[-2.44, -0.69],
+[-2.94, 0.24],
+[-2.79, 0.43],
+[-0.65, 0.89]])
+\end{verbatim}
+\end{framed}
